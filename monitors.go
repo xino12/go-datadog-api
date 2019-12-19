@@ -129,6 +129,18 @@ type Monitor struct {
 	State                State    `json:"state,omitempty"`
 }
 
+// SearchMonitor allows watching a metric or check that you care about,
+// notifying your team when some defined threshold is exceeded
+type SearchMonitor struct {
+	Creator              *Creator `json:"creator,omitempty"`
+	Id                   *int     `json:"id,omitempty"`
+	Name                 *string  `json:"name,omitempty"`
+	Message              *string  `json:"message,omitempty"`
+	Muted *bool  `json:"muted,omitempty"`
+	Scopes                 []string `json:"scopes,omitempty"`
+	Status                string    `json:"status,omitempty"`
+
+}
 // Creator contains the creator of the monitor
 type Creator struct {
 	Email  *string `json:"email,omitempty"`
@@ -152,6 +164,11 @@ type UnmuteMonitorScopes struct {
 // reqMonitors receives a slice of all monitors
 type reqMonitors struct {
 	Monitors []Monitor `json:"monitors,omitempty"`
+}
+
+// reqSearchMonitors receives a slice of all monitors
+type reqSearchMonitors struct {
+	Monitors []SearchMonitor `json:"monitors,omitempty"`
 }
 
 // CreateMonitor adds a new monitor to the system. This returns a pointer to a
@@ -250,6 +267,21 @@ func (client *Client) GetMonitorsWithOptions(opts MonitorQueryOpts) ([]Monitor, 
 		return nil, err
 	}
 	err = client.doJsonRequest("GET", fmt.Sprintf("/v1/monitor?%v", queryString.Encode()), nil, &out.Monitors)
+	if err != nil {
+		return nil, err
+	}
+	return out.Monitors, nil
+}
+
+// GetTriggeredMonitors returns a slice of 500 triggered monitors
+// It supports all the options for querying
+func (client *Client) GetTriggeredMonitors() ([]SearchMonitor, error) {
+	var out reqSearchMonitors
+	queryString, err := url.ParseQuery("start=0&count=50&sort=triggered%2Cdesc&text=&counts_size=500&counts=%7B%7D&with_groups=true")
+	if err != nil {
+		return nil, err
+	}
+	err = client.doJsonRequest("GET", fmt.Sprintf("/v1/monitor/search?%v", queryString.Encode()), nil, &out.Monitors)
 	if err != nil {
 		return nil, err
 	}
